@@ -1,0 +1,238 @@
+WeNextOS/
+├── bootloader/
+│   ├── boot.asm                ; محمل الإقلاع
+│   ├── gdt.asm                 ; جدول GDT
+│   ├── linker.ld               ; ملف الربط للنواة
+│   ├── partition.c            ; دعم تقسيم القرص
+│   ├── disk.c                 ; قراءة النواة من القرص
+│   └── efi.c                  ; دعم UEFI
+│
+├── kernel/
+│   ├── kernel.c                ; دالة البدء الأساسية
+│   ├── kernel.h
+│   ├── Makefile                ; ملف التجميع
+│   ├── kernel_signature.c      ; بصمة المطور
+│   └── memory/
+│       ├── paging.c           ; إدارة الذاكرة
+│       └── memory_map.c       ; خريطة الذاكرة
+│
+├── drivers/
+│   ├── vga/
+│   │   ├── vesa.c             ; دعم الرسوميات
+│   │   └── fbdev.c            ; Framebuffer
+│   ├── pci.c                  ; اكتشاف PCI
+│   └── keyboard.c             ; دعم الكيبورد
+│
+├── firewall/
+│   ├── firewall.c             ; جدار الحماية
+│   ├── aes.c                  ; تشفير AES
+│   └── intrusion.c           ; كاشف التهديدات
+│
+├── system/
+│   ├── logger.c               ; تسجيل الأحداث
+│   ├── shell.c                ; واجهة الأوامر
+│   └── taskmgr.c              ; مدير المهام
+│
+├── omnitrix_ui/
+│   ├── omnitrix.c             ; واجهة المستخدم الرسومية
+│   └── renderer.c             ; ريندر الواجهة
+│
+├── fs/
+│   ├── vfs.c                  ; نظام الملفات الوهمي
+│   └── ext2.c                 ; دعم ملفات ext2
+│
+├── user/
+│   ├── apps/                  ; تطبيقات المستخدم
+│   └── login.c                ; شاشة الدخول
+│
+├── docs/
+│   ├── README.md              ; الوثيقة الأساسية
+│   ├── LICENSE                ; ترخيص MIT/GPL
+│   └── BOOT.md               ; شرح إنشاء مُخططات الإقلاع
+│
+└── build/
+    ├── kernel.iso             ; الصورة النهائية
+    └── build.sh               ; سكربت البناء
+README.md
+# WeNextOS 🚀
+
+**Developed by Tombston777 (Fredrick_Alioua)**  
+Open-source operating system with advanced security and graphical interface.
+
+## الميزات:
+- **واجهة رسومية Omnitrix** 🌌
+- **جدار حماية متقدم** 🔒
+- **دعم UEFI و Legacy BIOS** 🖥️
+- **نظام تحديث ذكي** 🔄
+- **بصمة رقمية مُضمنة** 🔥
+
+## كيفية البناء:
+1. تثبيت المتطلبات:
+   ```bash
+   sudo apt install nasm qemu-system-x86 grub-common
+chmod +x build.sh
+./build.sh
+#!/bin/bash
+
+# تجميع bootloader
+nasm -f bin bootloader/boot.asm -o bootloader.bin
+
+# تجميع النواة
+make -C kernel
+
+# تجميع ملفات الـ user
+gcc -static user/login.c -o user/login
+
+# إنشاء مجلد ISO
+rm -rf iso_root
+mkdir -p iso_root/boot/grub
+cp kernel/kernel.bin iso_root/boot/
+cp bootloader.bin iso_root/boot/
+cp docs/LICENSE iso_root/
+cp docs/README.md iso_root/
+
+# إنشاء ملف grub.cfg
+cat > iso_root/boot/grub/grub.cfg <<EOF
+set timeout=0
+insmod part_msdos
+insmod part_gpt
+insmod efi_gop
+insmod efi_uga
+
+menuentry 'WeNextOS' {
+    multiboot /boot/kernel.bin
+    boot
+}
+EOF
+
+# إنشاء صورة ISO
+grub-mkrescue -o build/WeNextOS.iso iso_root
+
+# إظهار النتائج
+echo "ISO Created Successfully! 🎉"
+boot.asm
+BITS 16
+ORG 0x7C00
+
+start:
+    jmp boot_main
+
+; توقيع مُضمن في padding
+section .data
+align 512
+boot_signature db "Fredrick_Alioua|Tombston777|SHA256:4f22b8c98e29...|2025", 0
+
+section .bootloader
+align 510
+    times 510-($-$$) db 0
+    dw 0xAA55
+kernel_signature.c
+#include <stdint.h>
+
+const char* __attribute__((section(".fredrick_signature"))) kernel_signature = 
+    "WeNextOS Kernel © 2025 by Fredrick_Alioua [Tombston777]";
+
+void print_developer_info() {
+    extern const char* kernel_signature;
+    log_info("Kernel Built by: %s", kernel_signature);
+}
+omnitrix.c
+#include "vesa.h"
+
+void draw_omnitrix_logo() {
+    vesa_clear_screen(black_color);
+    
+    // شعار النظام
+    vesa_draw_text("<< WeNextOS >>", 200, 200, (Pixel){0, 255, 0, 255});
+    
+    // توقيعك
+    vesa_draw_text("Developed by Tombston777", 200, 220, (Pixel){0, 255, 255, 255});
+    vesa_draw_text("Proudly built with 💀 signature", 200, 240, (Pixel){255, 0, 255, 255});
+}
+shell.c
+#include "security.h"
+
+void shell_command() {
+    char input[32];
+    read_command(input);
+
+    if (strcmp(input, "tomb777-dev-proof") == 0) {
+        log_info("Verified: Fredrick_Alioua (Tombston777)");
+        log_info("Digital Signature: FREDRICK-A777-XOS-2025");
+    }
+}
+
+---
+
+#### **`LICENSE.txt`**
+```text
+WeNextOS - Copyright © 2025 Tombston777 (Fredrick_Alioua)
+
+This system is digitally watermarked. Unauthorized use, modification, or redistribution is prohibited.
+
+Digital Signature: FREDRICK-A777-XOS-2025
+
+MIT License:
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
